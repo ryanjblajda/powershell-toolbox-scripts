@@ -50,11 +50,6 @@ function Get-Devices {
     return ($discovered)
 }
 
-$SendCommand = {
-    param([PSCustomObject]$dev, [string]$cmd, [string]$usr, [string]$pw)
-    Write-Host $dev
-}
-
 #loop our entire main loop for updating stuff often.
 do {
     #discover devices and handle if the computer discovers nothing
@@ -80,11 +75,10 @@ do {
             $results = $discoveredCrestronDevices | Where-Object { $_.Hostname.ToLower() -eq $item.ToLower() }
             #if we find a matching result, print its details to the console
             if ($null -ne $results) {
-                $desiredDeviceIPAddress = $results[0].IP
-                #Write-Host $results[0]
+                Write-Host $results
                 $targetDeviceObjects.Add($results[0]) > $null
-                #Write-Host $targetDeviceObjects
-                Write-Host "$item @ $desiredDeviceIPAddress" -ForegroundColor DarkGreen
+                Write-Host "$item @ $($results[0].IP)" -ForegroundColor DarkGreen
+                $results | Add-Member -MemberType AliasProperty -Name Command -Value $command
             }
         }
         #prompt the use to confirm this is correct.
@@ -174,8 +168,6 @@ do {
                 $commandConfirmed = Get-Flattened $response
             }
             while($commandConfirmed -ne "y")
-
-            $device | Add-Member -MemberType AliasProperty -Name Command -Value $command
         }
     }
 
@@ -185,19 +177,22 @@ do {
     $actions = {
         if ($mode -eq "b") {
             foreach ($device in $targetDeviceObjects) {
-                Start-Job -ScriptBlock $SendCommand -ArgumentList $device, $device.Command, $username, $password
+                Write-Host "Sending Command To $($device.Hostname) @ $($device.IP) $($device.Command) // Username: $username, Password: $password"
+                #Start-Job -ScriptBlock $SendCommand -ArgumentList $device, $command, $username, $password
             } 
         }
         elseif ($mode -eq "u") {
             foreach ($device in $targetDeviceObjects) {
-                Start-Job -ScriptBlock $SendCommand -ArgumentList $device, $device.Command, $username, $password
+                Write-Host "Sending Command To $($device.Hostname) @ $($device.IP) $($device.Command) // Username: $username, Password: $password"
+                #Start-Job -ScriptBlock $SendCommand -ArgumentList $device, $device.Command, $username, $password
             }
         }
 
-        Get-Job | Receive-Job -Wait
+        #Get-Job | Receive-Job -Wait
     }
 
-    Invoke-Command $actions
+    #invoke script block
+    & $actions
 
     #allow us to quickly just re-do exactly what we just did for quick troubleshooting updates
     do {
@@ -209,7 +204,8 @@ do {
         $exit = $exit.ToLower()
         $exit -replace "`r`n", "" > $null
         if ($exit -eq 'r') {
-            Invoke-Command $actions
+            #invoke script block
+            & $actions
         }
     } while(($exit -ne 'n') -and ($exit -ne 'e'))
 
