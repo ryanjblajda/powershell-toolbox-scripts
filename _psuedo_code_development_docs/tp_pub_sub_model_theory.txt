@@ -1,0 +1,25 @@
+room video switcher logic
+
+touchpanel	
+	room id
+	selected source
+	selected display
+	displays
+	sources
+
+room 
+	id
+	sources
+		input
+		txinput
+		name
+	displays
+		output
+		name
+
+video switcher
+	push 
+
+
+message bus, receives events from videoswitcher, for touchpanels in list that have a matching room id, notify them of this change	
+	

@@ -1,0 +1,31 @@
+device_setup
+
+import ip worksheet csv
+get only crestron devices -> manufacturer column
+check csv has hostname column
+	if not throw message
+	wait for ok
+	try import again
+check all crestron devices have serial number
+	if not print warning
+	once complete, wait for ok
+	try import again
+
+discover devices
+match serial numbers to csv
+print list of devices in CSV but not discovered
+    (export this list to desktop as missing.csv)
+
+if device supports programs
+       send program -noreset
+
+foreach device
+    set hostname 
+    set ip
+    reboot
+
+print errors
+    (export errors to desktop as errors.txt)
+
+
+

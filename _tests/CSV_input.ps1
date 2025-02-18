@@ -1,0 +1,1 @@
+Write-Information -MessageData "Foo" -InformationAction Stop

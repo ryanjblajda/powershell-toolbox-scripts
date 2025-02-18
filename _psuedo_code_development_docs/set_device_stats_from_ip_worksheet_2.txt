@@ -1,0 +1,34 @@
+ask if update network settings
+	use variable later to reboot at end
+
+ask if update prog
+	get prog file
+	ask for pslot
+	ask for target devices (EMPHASIS ON MODEL SPECIFICITY)
+
+ask if update config
+	get config file folder
+	based on hostname so no need to ask for target devices
+
+ask if update ui file
+	get ui file
+	ask for target devices (EMPHASIS ON MODEL SPECIFICITY)
+
+update devices
+	if update config
+		send config
+		if not update prog
+			restart prog - pslot
+
+	if update prog
+		if device is model needs program
+			send prog - pslot
+	
+	if update ui file
+		if device is model needs ui file
+			send ui file
+	if update network
+		set network
+		reboot
+
+	
