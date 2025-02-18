@@ -1,0 +1,4 @@
+#ignore directories
+_old/
+_tests/
+_psuedo_code_development_docs/
