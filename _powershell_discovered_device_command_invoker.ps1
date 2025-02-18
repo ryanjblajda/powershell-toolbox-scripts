@@ -8,6 +8,13 @@ catch
     Write-Warning "Run the _powershell_crestron_setup script you must!! - Yoda, probably..."
     Write-Error $_
 }
+
+$SendCommand = { 
+    param ([PSObject]$device, [string]$command, [string]$user, [string]$pw)
+
+    Invoke-CrestronCommand -Device $device.IP -Command $command -Secure -Username $user -Password $pw | Write-Host -Foreground Green
+}
+
 function Get-Flattened {
     param([string]$ToFlatten)
        
@@ -75,10 +82,9 @@ do {
             $results = $discoveredCrestronDevices | Where-Object { $_.Hostname.ToLower() -eq $item.ToLower() }
             #if we find a matching result, print its details to the console
             if ($null -ne $results) {
-                Write-Host $results
                 $targetDeviceObjects.Add($results[0]) > $null
                 Write-Host "$item @ $($results[0].IP)" -ForegroundColor DarkGreen
-                $results | Add-Member -MemberType AliasProperty -Name Command -Value $command
+                $results | Add-Member -MemberType AliasProperty -Name Command -Value "info"
             }
         }
         #prompt the use to confirm this is correct.
@@ -177,18 +183,18 @@ do {
     $actions = {
         if ($mode -eq "b") {
             foreach ($device in $targetDeviceObjects) {
-                Write-Host "Sending Command To $($device.Hostname) @ $($device.IP) $($device.Command) // Username: $username, Password: $password"
-                #Start-Job -ScriptBlock $SendCommand -ArgumentList $device, $command, $username, $password
+                #Write-Host "Sending Command To $($device.Hostname) @ $($device.IP) $($device.Command) // Username: $username, Password: $password"
+                Start-Job -ScriptBlock $SendCommand -ArgumentList $device, $command, $username, $password -Name $device.Hostname
             } 
         }
         elseif ($mode -eq "u") {
             foreach ($device in $targetDeviceObjects) {
-                Write-Host "Sending Command To $($device.Hostname) @ $($device.IP) $($device.Command) // Username: $username, Password: $password"
-                #Start-Job -ScriptBlock $SendCommand -ArgumentList $device, $device.Command, $username, $password
+                #Write-Host "Sending Command To $($device.Hostname) @ $($device.IP) $($device.Command) // Username: $username, Password: $password"
+                Start-Job -ScriptBlock $SendCommand -ArgumentList $device, $device.Command, $username, $password -Name $device.Hostname
             }
         }
 
-        #Get-Job | Receive-Job -Wait
+        Get-Job | Receive-Job -Wait
     }
 
     #invoke script block
