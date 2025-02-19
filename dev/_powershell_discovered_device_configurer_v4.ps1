@@ -1,72 +1,122 @@
 try 
 {
     Import-Module PSCrestron
-    Add-Type -AssemblyName Microsoft.VisualBasic
+    Import-Module ImportExcel
 }
 catch 
 {
-    Write-Warning "Install Crestron Powershell EDK First You Must!! - Yoda, probably..."
+    Write-Warning "Run the _powershell_crestron_setup script you must!! - Yoda, probably..."
+    Write-Error $_
 }
 
-try 
-{
-    echo "Discovering Crestron Devices...."
-    $discovered = Get-AutoDiscovery
+function Get-Flattened {
+    param([string]$ToFlatten)
+       
+    $result = $ToFlatten.ToLower()
+    $result = $result -replace "`r`n", ""
 
-    if($null -eq $discovered)
-    {
-        Write-Warning -Message "No Crestron devices were found on the network!"
-        Write-Warning -Message "Please resolve this, and re-run the script"
-        Read-Host "Press Enter To Exit"
-        Exit
+    return($result)
+}
+function Get-Devices {
+    do {
+        $showRetryExitPrompt = $false
+        try {
+            Write-Host "Discovering Crestron Devices...." -ForegroundColor DarkGreen
+            $discovered = Get-AutoDiscovery -ShowProgress
+
+            if($null -eq $discovered)
+            {
+                Write-Warning -Message "No Crestron devices were found on the network!`nPlease make sure you are connected to the right network, and you have an IP Address in the correct subnet`n`n**sad trombone noises**"
+                $showRetryExitPrompt = $true
+            }
+            else {    
+                $exitResponse = 'continue'
+            }
+        }
+        catch {
+            Write-Warning -Message "Looks like your aren't connected to any networks`nMake sure your are actually connected a network switch or Crestron device`n`n**sad trombone noises**"
+            Write-Error $_
+            $showRetryExitPrompt = $true
+        }
+        
+        if ($showRetryExitPrompt) {
+            $exitResponse = Read-Host -Prompt "Enter [e] to exit, or [r] re-run discovery again"
+            $exitResponse = Get-Flattened -ToFlatten $exitResponse
+        }
     }
+    while(($exitResponse -ne "e") -and ($exitResponse -ne "continue"))
 
-    Write-Host "Available Devices`n-------------------------------------------"
-    Write-Host $discovered | Out-Default
+    if ($exitResponse -eq "e") { Exit }
+
+    return ($discovered)
 }
-catch 
-{
-    Write-Warning -Message "**insert sad trombone noise** `nLooks like your aren't connected to any networks...`nFix that and run me again!"
-    Read-Host "Press Enter To Exit"
-    Exit
-}
+
 #loop our entire main loop for updating stuff often.
 do {
-        #do stuff with our list of devices
+    #discover devices and handle if the computer discovers nothing
+    $discoveredCrestronDevices = Get-Devices
+    #display the output from Get-Devices
+    Write-Output $discoveredCrestronDevices | Out-Default
 
+    #get the desired devices to configure
     do {
+        #get the list of devices that the user wants to configure
         $response = Read-Host -Prompt "Enter the hostnames of the devices you wish to update/configure, separated by a comma"
+        #get rid of the hidden crap we dont want
         $response -replace "`r`n", "" > $null
-        $targetdevices = $response.Replace(" ", "").ToUpper().Split(",")
-        $hostconfirmation = Read-Host -Prompt "You wish to update/confgure $targetdevices ? --- Enter [y] to confirm, [n] to re-enter desired devices"
-        $hostconfirmation.ToLower() > $null
-    }
-    while($hostconfirmation -ne "y")
-
-    do {
-        $defaultcreds = Read-Host -Prompt "Use Crestron default credentials? --- Enter [y] to confirm, [n] to enter custom SSH credentials"
-        $defaultcreds.ToLower()
-        if($defaultcreds -eq "y") {
-            $username = "crestron"
-            $password = ""
-            $credsresponse = "y"
-        }
-        elseif($defaultcreds -eq "n")
-        {
-            do {
-                $username = Read-Host -Prompt 'Username'
-                $password = Read-Host -Prompt 'Password'
-                $credsresponse = Read-Host -Prompt "USER: $username | PW: $password --- Enter [y] to confirm, [n] to re-enter credentials"
-                $credsresponse.ToLower() > $null
+        #get rid of any spaces, and split the entries based on the comma to create a list
+        $targetDevices = $response.Replace(" ", "").Split(",")
+        #spit out a list to show the user exactly what devices we are going to configure so that we can make sure what they wanted is correct
+        Write-Host "You wish to configure the following devices:" -ForegroundColor Yellow
+        #loop through all the target devices
+        $targetDeviceObjects = [System.Collections.ArrayList]::new()
+        foreach($item in $targetDevices) {
+            $item = Get-Flattened $item
+            #find where we have a matching device in the discovered devices table
+            $results = $discoveredCrestronDevices | Where-Object { $_.Hostname.ToLower() -eq $item.ToLower() }
+            #if we find a matching result, print its details to the console
+            if ($null -ne $results) {
+                $targetDeviceObjects.Add($results[0]) > $null
+                Write-Host "$item @ $($results[0].IP)" -ForegroundColor DarkGreen
+                $results | Add-Member -MemberType AliasProperty -Name Command -Value "info"
             }
-            while ($credsresponse -ne "y")
+        }
+        #prompt the use to confirm this is correct.
+        $desiredDevicesCorrect = Read-Host -Prompt "Enter [y] to confirm, [n] to re-enter desired device list"
+    }
+    while($desiredDevicesCorrect -ne "y")
+
+    #determine the credentials desired
+    do {
+        #store default credentials by default
+        $username = "admin"
+        $password = "CCS$erv!ce"
+        
+        $response = Read-Host -Prompt "Use CCS default credentials? --- Enter [y] to confirm, [n] to enter custom SSH credentials"
+        $useDefaultCredentials = Get-Flattened $response
+        
+        if($useDefaultCredentials -eq "y") {
+            #we want to exit this loop, so set variable to y
+            $credentialsConfirmed = "y"
+        }
+        elseif($useDefaultCredentials -eq "n")
+        {
+            #if the user needs to use custom credentials, we will loop through making sure that everything is correct before continuing
+            do {
+                $username = Read-Host -Prompt 'Please enter the desired username'
+                $password = Read-Host -Prompt 'Please enter the desired password'
+                Write-Host "You desire the following credentials | username: $username // password: $password" -ForegroundColor DarkGreen
+                $response = Read-Host -Prompt "Enter [y] to confirm, [n] to re-enter credentials" 
+                $credentialsConfirmed = Get-Flattened $response
+            }
+            while ($credentialsConfirmed -ne "y")
         }
         else 
         {
-            Write-Warning -Message "Yo...type [y] or [n], not $defaultcreds"
+            Write-Warning -Message "Danger Will Robinson!`nYou've entered an invalid response. I know not what to do with this nonsense: $credentialsConfirmed`nEnter [y] to use the default crestron credentials, or [n] to use SSH credentials you provide"
         }       
     }
-    while($credsresponse -ne "y")
+    while($credentialsConfirmed -ne "y")
 
     $updateconfig = $null
     $updateprogram = $null

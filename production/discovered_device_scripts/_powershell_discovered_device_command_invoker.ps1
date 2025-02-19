@@ -84,7 +84,7 @@ do {
             if ($null -ne $results) {
                 $targetDeviceObjects.Add($results[0]) > $null
                 Write-Host "$item @ $($results[0].IP)" -ForegroundColor DarkGreen
-                $results | Add-Member -MemberType AliasProperty -Name Command -Value "info"
+                $results | Add-Member -MemberType NoteProperty -Name Command -Value "info" -Force
             }
         }
         #prompt the use to confirm this is correct.
@@ -174,6 +174,8 @@ do {
                 $commandConfirmed = Get-Flattened $response
             }
             while($commandConfirmed -ne "y")
+
+            $device.Command = $command
         }
     }
 
@@ -198,7 +200,7 @@ do {
     }
 
     #invoke script block
-    & $actions
+    Invoke-Command $actions
 
     #allow us to quickly just re-do exactly what we just did for quick troubleshooting updates
     do {
@@ -206,14 +208,14 @@ do {
         Write-Host "Enter [e] to exit this script immediately" -ForegroundColor Red
         Write-Host "Enter [n] to re-run through the discovery & configuration process anew" -ForegroundColor Cyan
         Write-Host "Enter [r] to re-run this script exactly as you have it configured once more." -ForegroundColor DarkGreen
-        $exit = Read-Host
-        $exit = $exit.ToLower()
-        $exit -replace "`r`n", "" > $null
+        $response = Read-Host
+        $exit = Get-Flattened $response
+
         if ($exit -eq 'r') {
             #invoke script block
-            & $actions
+            Invoke-Command $actions
         }
-    } while(($exit -ne 'n') -and ($exit -ne 'e'))
+    } while($exit -ne 'n' -and $exit -ne 'e')
 
 } while($exit -ne 'e')
 
