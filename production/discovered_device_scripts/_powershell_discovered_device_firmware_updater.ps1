@@ -56,7 +56,7 @@ $updateDeviceFirmware = {
     param([PSObject]$dev, [string]$firmware, [string]$usr, [string]$pw)
 
     $firmwareFileName = $firmware | Split-Path -Leaf
-    $model = $dev.Description.Split(" ")[0]
+    $model = $dev.Description.Split(" ")[0].ToLower()
     Write-Host -ForegroundColor Cyan "Uploading $firmwareFileName to: $($dev.Hostname) @ $($dev.IP) -> [$model]"
 
     Send-FTPFile -Device $dev.IP -LocalFile $firmware -RemoteFile "\firmware\$firmwareFileName" -Secure -Username $usr -Password $pw
@@ -170,11 +170,53 @@ do {
 
     #for each command/device create a job
     Write-Host "Beginning Jobs..." -Foreground DarkGreen
+    Write-Host $firmwareFileDictionary
 
     $actions = {
         foreach($device in $targetDeviceObjects) {
             $model = $device.Description.Split(" ")[0].ToLower()
-            Start-Job -ScriptBlock $updateDeviceFirmware -ArgumentList $device, $firmwareFileDictionary[$model], $username, $password -Name $device.Hostname
+            $firmware = $firmwareFileDictionary[$model]
+            #if the user entered just tsw, or dge, then 
+            if ($firmware -eq $null) {
+                do {
+                    Write-Warning "There is no dictionary entry for $model devices!"
+                    $response = Read-Host -Prompt "Enter [y] to specify the correct firmware file for $model devices, or [n] to skip these devices."
+                    $update = Get-Flattened $response
+                } 
+                while(($update -ne 'y') -and ($update -ne 'n'))
+                
+                if ($update -eq 'y') {
+                    Write-Host "Please select the firmware file to upload to $model devices" -ForegroundColor Yellow
+                    do {
+                        $dialog = New-Object -TypeName System.Windows.Forms.OpenFileDialog
+                        $dialog.AddExtension = $true
+                        $dialog.Filter = 'All Files |*.*'
+                        $dialog.Multiselect = $false
+                        $dialog.InitialDirectory = "$HOME\Downloads"
+                        $dialog.RestoreDirectory = $true
+                        $dialog.Title = 'Select Firmware File'
+                        $dialog.ShowDialog()
+            
+                        $firmwareFilePath = $dialog.FileName
+                        $firmwareFileName = $firmwareFilePath | Split-Path -Leaf
+            
+                        Write-Host "You have selected the following file to upload to $model devices: $firmwareFileName" -ForegroundColor DarkGreen
+                        $response = Read-Host "Enter [y] to confirm this is the correct file, [n] to select a different file"
+                        $firmwareFileConfirmed = Get-Flattened $response
+                    }
+                    while($firmwareFileConfirmed -ne 'y')
+
+                    $firmwareFileDictionary[$model] = $firmwareFilePath
+                }
+            }
+            else { 
+                $update = 'y'
+            }
+            
+            if ($update -eq 'y') {
+                Write-Host -ForegroundColor DarkGreen "Beginning Send $($device.Hostname) @ $($device.IP) --> $firmware"
+                Start-Job -ScriptBlock $updateDeviceFirmware -ArgumentList $device, $firmware, $username, $password -Name $device.Hostname 
+            }
         }
         Get-Job | Receive-Job -Wait
     }
