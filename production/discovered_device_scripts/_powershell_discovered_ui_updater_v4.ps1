@@ -57,7 +57,7 @@ $configureUserInterfaces = {
 
     Write-Host -ForegroundColor Cyan "Starting setup for $($dev.Hostname) : $($dev.IP) | USR: $usr / PW: $pw"
     #if the user wants to update then IP table 
-    if($ipt -ne $null) { 
+    if($ipt -ne 'info') { 
         Write-Host -ForegroundColor Cyan "Setting IP Table on $($dev.Hostname) : $($dev.IP) | $ipt"
         Invoke-CrestronCommand $dev.IP -Command "addm $ipt" -Secure -Username $usr -Password $pw
     }
