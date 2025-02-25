@@ -2,6 +2,7 @@
 {
     Import-Module PSCrestron
     Import-Module ImportExcel
+    Import-Module Posh-SSH
 }
 catch 
 {
@@ -11,41 +12,15 @@ catch
 
 $SendCommand = { 
     param ([PSObject]$device, [string]$command, [string]$user, [string]$pw)
-
-    # Construct the SSH command
-    $sshCommand = "ssh $user@$($device.Hostname)"
-
-    $processInfo = New-Object System.Diagnostics.ProcessStartInfo
-    $processInfo.FileName = "C:\Windows\System32\OpenSSH\ssh.exe" # Path to ssh.exe
-    $processInfo.Arguments = $sshCommand
-    $processInfo.RedirectStandardInput = $true
-    $processInfo.RedirectStandardOutput = $true
-    $processInfo.UseShellExecute = $false
-    $processInfo.CreateNoWindow = $true # Optional: Prevents the window from appearing
-
-    # Start the process
-    $process = New-Object System.Diagnostics.Process
-    $process.StartInfo = $processInfo
-    $process.Start() | Out-Null
-
-    # Get the input and output streams
-    $inputStream = $process.StandardInput
-    $outputStream = $process.StandardOutput
-
-    # Send the password
-    $inputStream.WriteLine($pw)
-    $inputStream.WriteLine($command)
-    $inputStream.Close()
-
-    # Read and display the output
-    while (!$outputStream.EndOfStream) {
-        $line = $outputStream.ReadLine()
-        Write-Host $line
-    }
-
-    # Wait for the process to exit
-    $process.WaitForExit()
-    $process.Dispose()
+    $password = $pw | ConvertTo-SecureString -AsPlainText -Force
+    $credential = New-Object System.Management.Automation.PSCredential($user, $password)
+    $session = New-SSHSession -ComputerName $device.IP -Credential $credential -AcceptKey
+    Invoke-SSHCommand -SSHSession $session -Command "admin" -ShowStandardOutputStream > $results
+    Write-Host $results
+    Invoke-SSHCommand -SSHSession $session -Command "CCS$erv!ce" -ShowStandardOutputStream > $results
+    Write-Host $results
+    Invoke-SSHCommand -SSHSession $session -Command "CCS$erv!ce" -ShowStandardOutputStream > $results
+    Write-Host $results
 }
 
 function Get-Flattened {
