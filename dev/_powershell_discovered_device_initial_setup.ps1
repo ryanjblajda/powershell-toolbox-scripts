@@ -12,7 +12,40 @@ catch
 $SendCommand = { 
     param ([PSObject]$device, [string]$command, [string]$user, [string]$pw)
 
-    #Invoke-CrestronCommand -Device $device.IP -Command $command -Secure -Username $user -Password $pw | Write-Host -Foreground Green
+    # Construct the SSH command
+    $sshCommand = "ssh $user@$($device.Hostname)"
+
+    $processInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $processInfo.FileName = "C:\Windows\System32\OpenSSH\ssh.exe" # Path to ssh.exe
+    $processInfo.Arguments = $sshCommand
+    $processInfo.RedirectStandardInput = $true
+    $processInfo.RedirectStandardOutput = $true
+    $processInfo.UseShellExecute = $false
+    $processInfo.CreateNoWindow = $true # Optional: Prevents the window from appearing
+
+    # Start the process
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = $processInfo
+    $process.Start() | Out-Null
+
+    # Get the input and output streams
+    $inputStream = $process.StandardInput
+    $outputStream = $process.StandardOutput
+
+    # Send the password
+    $inputStream.WriteLine($pw)
+    $inputStream.WriteLine($command)
+    $inputStream.Close()
+
+    # Read and display the output
+    while (!$outputStream.EndOfStream) {
+        $line = $outputStream.ReadLine()
+        Write-Host $line
+    }
+
+    # Wait for the process to exit
+    $process.WaitForExit()
+    $process.Dispose()
 }
 
 function Get-Flattened {
