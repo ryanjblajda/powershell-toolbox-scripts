@@ -21,28 +21,31 @@ $SendCommand = {
             $credentials = New-Object System.Management.Automation.PSCredential ($user, $password)
         }
         
-        $session = New-SSHSession -ComputerName $device.IP -AcceptKey -Credential $credentials -Force -Verbose
+        $session = New-SSHSession -ComputerName $device.IP -AcceptKey -Credential $credentials -Force #-Verbose
         
         if ($session -ne $null) {
-            $stream = New-SSHShellStream $session -Verbose
-            Invoke-SSHStreamExpectAction -ShellStream $stream -Command "`r" -ExpectRegex 'Username:' -Action "admin" -Verbose
-            Invoke-SSHStreamExpectAction -ShellStream $stream -Command "CCS`$erv!ce" -ExpectRegex 'password:' -Action "CCS`$erv!ce" -Verbose
+            $stream = New-SSHShellStream $session #-Verbose
+            Invoke-SSHStreamExpectAction -ShellStream $stream -Command "`r" -ExpectRegex 'Username:' -Action "admin" #-Verbose
+            Invoke-SSHStreamExpectAction -ShellStream $stream -Command "CCS`$erv!ce" -ExpectRegex 'password:' -Action "CCS`$erv!ce" #-Verbose
             Remove-SSHSession $session
+
+            Write-Host "Waiting a 2 seconds..."
+
+            Start-Sleep -Seconds 2
 
             Write-Host "Attempting to verify credentials were set correctly!" -ForegroundColor Magenta
 
             $password = "CCS`$erv!ce" | ConvertTo-SecureString -AsPlainText -Force
             $credentials = New-Object System.Management.Automation.PSCredential ("admin", $password) 
             
-            $session = New-SSHSession -ComputerName $device.IP -AcceptKey -Credential $credentials -Force -Verbose
+            $session = New-SSHSession -ComputerName $device.IP -AcceptKey -Credential $credentials -Force #-Verbose
             
             if($session -ne $null) {
-                $stream = New-SSHShellStream $session -Verbose
-                Invoke-SSHCommandStream $session "info" -Verbose
+                $stream = New-SSHShellStream $session #-Verbose
+                Invoke-SSHCommandStream $session "ver -v" #-Verbose
                 Remove-SSHSession $session
-        
-                Write-Warning "Error Encountered Validating Credentials!"
             }
+            else { Write-Warning "Error Encountered Validating Credentials!" }
         }
         else { Write-Warning "Error Encountered Setting Credentials!" }
 }
