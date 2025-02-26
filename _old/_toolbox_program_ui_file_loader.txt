@@ -1,0 +1,27 @@
+[Header]
+DebugStrings=on
+AbortOnError=on
+ConcurrentSectionLimit=100
+
+[AddressList:Type3Processors]
+auto CPR-101
+
+[AddressList:Touchpanels]
+auto TPL-01
+auto TPL-02
+
+[Variables]
+
+DisplayFile=|$scriptpath|WrestlingTraining_TSW-1070_v1.1.2.vtz
+
+3Program=|$scriptpath|WrestlingTraining_v1.1.2.lpz
+
+[Load Touchpanel]
+Connect=AddressList:Touchpanels
+DisplayListSend |DisplayFile|
+
+[Load Program]
+Connect=AddressList:Type3Processors
+ProgramSend |3Program|
+
+
