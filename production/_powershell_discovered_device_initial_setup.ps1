@@ -27,12 +27,12 @@ $SendCommand = {
             $stream = New-SSHShellStream $session #-Verbose
             do {
                 $result = Invoke-SSHStreamExpectAction -ShellStream $stream -Command "`r"  -ExpectRegex '[Uu]sername:' -Action "admin" -Verbose
-                Start-Sleep -Seconds 10
+                Start-Sleep -Seconds 3
             } while($result -ne $true)
             
             do {
                 $result = Invoke-SSHStreamExpectAction -ShellStream $stream -Command "CCS`$erv!ce" -ExpectRegex '[Pp]assword:' -Action "CCS`$erv!ce" -Verbose
-                Start-Sleep -Seconds 10
+                Start-Sleep -Seconds 3
             } while($result -ne $true)
             
             Remove-SSHSession $session
