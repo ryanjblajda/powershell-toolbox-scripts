@@ -25,8 +25,16 @@ $SendCommand = {
         
         if ($session -ne $null) {
             $stream = New-SSHShellStream $session #-Verbose
-            Invoke-SSHStreamExpectAction -ShellStream $stream -Command "`r" -ExpectRegex 'Username:' -Action "admin" #-Verbose
-            Invoke-SSHStreamExpectAction -ShellStream $stream -Command "CCS`$erv!ce" -ExpectRegex 'password:' -Action "CCS`$erv!ce" #-Verbose
+            do {
+                $result = Invoke-SSHStreamExpectAction -ShellStream $stream -Command "`r"  -ExpectRegex '[Uu]sername:' -Action "admin" -Verbose
+                Start-Sleep -Seconds 10
+            } while($result -ne $true)
+            
+            do {
+                $result = Invoke-SSHStreamExpectAction -ShellStream $stream -Command "CCS`$erv!ce" -ExpectRegex '[Pp]assword:' -Action "CCS`$erv!ce" -Verbose
+                Start-Sleep -Seconds 10
+            } while($result -ne $true)
+            
             Remove-SSHSession $session
 
             Write-Host "Waiting a 2 seconds..."
