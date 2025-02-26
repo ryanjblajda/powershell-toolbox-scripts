@@ -144,8 +144,8 @@ do {
     $command = "`r`nadmin`r`nCCS$erv!ce`r`nCCS$erv!ce`r`n"
 
     do {
-        Write-Host "You are about to attempt to set the administrator account on $targetDevices" -ForegroundColor Yellow
-        Write-Host "ARE YOU SURE YOU WANT TO DO THIS!?"
+        Write-Host "You are about to attempt to RESTORE $targetDevices" -ForegroundColor Red
+        Write-Host "ARE YOU SURE YOU WANT TO DO THIS!?" -ForegroundColor Red
 
         $response = Read-Host -Prompt "Enter [y] to immediately begin the process. Enter [n] to immediately exit this script"
         $continue = Get-Flattened $response
