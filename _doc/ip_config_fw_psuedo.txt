@@ -1,0 +1,14 @@
+select firmware directory
+	check device model
+	if find filename containing model name
+		check version
+			if needs update
+				add to log
+				send via ftp
+				if PUF
+					send puf command
+				if ZIP
+					send pushupdate full command
+	else 
+		notify in log
+				
