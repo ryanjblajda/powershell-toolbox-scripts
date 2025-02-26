@@ -11,7 +11,7 @@ catch
 
 $SendCommand = { 
     param ([PSObject]$device, [string]$command, [string]$user, [string]$pw)
-
+    Write-Host "Invoking $command on $($device.Hostname) @ $($device.IP) using $user // $pw" -ForegroundColor Yellow
     Invoke-CrestronCommand -Device $device.IP -Command $command -Secure -Username $user -Password $pw | Write-Host -Foreground Green
 }
 
@@ -96,7 +96,7 @@ do {
     do {
         #store default credentials by default
         $username = "admin"
-        $password = "CCS$erv!ce"
+        $password = 'CCS$erv!ce'
         
         $response = Read-Host -Prompt "Use CCS default credentials? --- Enter [y] to confirm, [n] to enter custom SSH credentials"
         $useDefaultCredentials = Get-Flattened $response
