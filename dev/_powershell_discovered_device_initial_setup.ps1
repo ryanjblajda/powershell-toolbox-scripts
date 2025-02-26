@@ -12,15 +12,39 @@ catch
 
 $SendCommand = { 
     param ([PSObject]$device, [string]$command, [string]$user, [string]$pw)
-    $password = $pw | ConvertTo-SecureString -AsPlainText -Force
-    $credential = New-Object System.Management.Automation.PSCredential($user, $password)
-    $session = New-SSHSession -ComputerName $device.IP -Credential $credential -AcceptKey
-    Invoke-SSHCommand -SSHSession $session -Command "admin" -ShowStandardOutputStream > $results
-    Write-Host $results
-    Invoke-SSHCommand -SSHSession $session -Command "CCS$erv!ce" -ShowStandardOutputStream > $results
-    Write-Host $results
-    Invoke-SSHCommand -SSHSession $session -Command "CCS$erv!ce" -ShowStandardOutputStream > $results
-    Write-Host $results
+
+        Write-Host "Attempting to set CCS default credentials in device." -ForegroundColor Green
+
+        if ($pw -eq "" -or $pw -eq $null) { $credentials = New-Object System.Management.Automation.PSCredential ($user, (new-object System.Security.SecureString)) }
+        else { 
+            $password = $pw | ConvertTo-SecureString -AsPlainText -Force
+            $credentials = New-Object System.Management.Automation.PSCredential ($user, $password)
+        }
+        
+        $session = New-SSHSession -ComputerName $device.IP -AcceptKey -Credential $credentials -Force -Verbose
+        
+        if ($session -ne $null) {
+            $stream = New-SSHShellStream $session -Verbose
+            Invoke-SSHStreamExpectAction -ShellStream $stream -Command "`r" -ExpectRegex 'Username:' -Action "admin" -Verbose
+            Invoke-SSHStreamExpectAction -ShellStream $stream -Command "CCS`$erv!ce" -ExpectRegex 'password:' -Action "CCS`$erv!ce" -Verbose
+            Remove-SSHSession $session
+
+            Write-Host "Attempting to verify credentials were set correctly!" -ForegroundColor Magenta
+
+            $password = "CCS`$erv!ce" | ConvertTo-SecureString -AsPlainText -Force
+            $credentials = New-Object System.Management.Automation.PSCredential ("admin", $password) 
+            
+            $session = New-SSHSession -ComputerName $device.IP -AcceptKey -Credential $credentials -Force -Verbose
+            
+            if($session -ne $null) {
+                $stream = New-SSHShellStream $session -Verbose
+                Invoke-SSHCommandStream $session "info" -Verbose
+                Remove-SSHSession $session
+        
+                Write-Warning "Error Encountered Validating Credentials!"
+            }
+        }
+        else { Write-Warning "Error Encountered Setting Credentials!" }
 }
 
 function Get-Flattened {
