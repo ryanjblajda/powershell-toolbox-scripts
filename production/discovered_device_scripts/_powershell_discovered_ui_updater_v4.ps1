@@ -107,7 +107,7 @@ do {
     do {
         #store default credentials by default
         $username = "admin"
-        $password = "CCS$erv!ce"
+        $password = 'CCS$erv!ce'
         
         $response = Read-Host -Prompt "Use CCS default credentials? --- Enter [y] to confirm, [n] to enter custom SSH credentials"
         $useDefaultCredentials = Get-Flattened $response
