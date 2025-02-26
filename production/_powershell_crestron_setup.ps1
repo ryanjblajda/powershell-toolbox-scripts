@@ -1,7 +1,8 @@
-Write-Host "Beginning ImportExcel Install"
-
 try {
+    Write-Host "Beginning ImportExcel Install"
     Install-Module ImportExcel -AllowClobber -Scope CurrentUser
+    Write-Host "Beginning Posh-SSH Install"
+    Install-Module Posh-SSH -AllowClobber -Scope CurrentUser
 }
 catch {
     Write-Error $_
