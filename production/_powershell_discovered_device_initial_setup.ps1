@@ -22,24 +22,29 @@ $SendCommand = {
         }
         
         $session = New-SSHSession -ComputerName $device.IP -AcceptKey -Credential $credentials -Force #-Verbose
-        
+        $session = Get-SSHSession -SessionID 0
+
         if ($session -ne $null) {
-            $stream = New-SSHShellStream $session #-Verbose
+            $stream = New-SSHShellStream $session -Verbose
+            #[\w\s.@'password]+: --- password regex
             do {
-                $result = Invoke-SSHStreamExpectAction -ShellStream $stream -Command "`r"  -ExpectRegex '[Uu]sername:' -Action "admin" -Verbose
-                Start-Sleep -Seconds 3
-            } while($result -ne $true)
+                $result = Invoke-SSHStreamExpectAction -ShellStream $stream -Command "admin" -ExpectRegex "\n[\w\s.]+:" -Verbose -Action "CCS`$erv!ce"
+                
+                if ($result -eq $true) {
+                    Write-Host "Admin Account Added" -ForegroundColor Green
+                    Write-Host "Password Set" -ForegroundColor Green
+                }
+                
+                $secondary = Invoke-SSHStreamShellCommand $stream -Command "CCS`$erv!ce" -TimeoutSeconds 1
+                
+                Write-Host "Invoke Password Confirm Result: $secondary"
+            } while($result -ne $true -and $session.Connected)
             
-            do {
-                $result = Invoke-SSHStreamExpectAction -ShellStream $stream -Command "CCS`$erv!ce" -ExpectRegex '[Pp]assword:' -Action "CCS`$erv!ce" -Verbose
-                Start-Sleep -Seconds 3
-            } while($result -ne $true)
-            
-            Remove-SSHSession $session
+            Remove-SSHSession $session > $null
 
-            Write-Host "Waiting a 2 seconds..."
+            Write-Host "Waiting..."
 
-            Start-Sleep -Seconds 2
+            Start-Sleep -Seconds 5
 
             Write-Host "Attempting to verify credentials were set correctly!" -ForegroundColor Magenta
 
@@ -51,7 +56,8 @@ $SendCommand = {
             if($session -ne $null) {
                 $stream = New-SSHShellStream $session #-Verbose
                 Invoke-SSHCommandStream $session "ver -v" #-Verbose
-                Remove-SSHSession $session
+                $stream.Read()
+                Remove-SSHSession $session > $null
             }
             else { Write-Warning "Error Encountered Validating Credentials!" }
         }
