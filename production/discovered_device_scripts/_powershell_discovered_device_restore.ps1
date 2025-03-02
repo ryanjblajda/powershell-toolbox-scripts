@@ -22,9 +22,11 @@ $SendCommand = {
         
         if ($session -ne $null) {
             $stream = New-SSHShellStream $session #-Verbose
-            Invoke-SSHStreamExpectAction -ShellStream $stream -Command "restore" -ExpectRegex 'Do you want to continue (Y or N)?' -Action "y" -Verbose
-            #Invoke-SSHStreamExpectAction -ShellStream $stream -Command "CCS`$erv!ce" -ExpectRegex 'password:' -Action "CCS`$erv!ce" #-Verbose
-            Remove-SSHSession $session
+            $result = Invoke-SSHStreamExpectAction -ShellStream $stream -Command "restore" -ExpectRegex 'Do you want to continue (Y or N)?' -Action "y" -Verbose
+            if ($result -eq $true) {
+                Write-Host "Device Restore Command Executed!" -ForegroundColor Green
+            }
+            Remove-SSHSession $session > $null
         }
         else { Write-Warning "Error Connecting To Device!" }
 }
